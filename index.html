@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Weather Report — Irynas</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: linear-gradient(160deg, #ffe066 0%, #fff8c5 40%, #fffbe8 100%);
+      min-height: 100vh;
+      color: #2d2106;
+    }
+
+    /* ── HEADER ── */
+    header {
+      text-align: center;
+      padding: 56px 20px 0;
+    }
+    header h1 {
+      font-size: clamp(2.4rem, 6vw, 4rem);
+      font-weight: 800;
+      letter-spacing: -1px;
+      color: #b8690a;
+      text-shadow: 0 2px 6px rgba(184,105,10,.18);
+      line-height: 1.1;
+    }
+    header p.subtitle {
+      font-size: clamp(1.3rem, 3.5vw, 2rem);
+      font-weight: 600;
+      font-style: italic;
+      color: #d4880f;
+      margin-top: 6px;
+      letter-spacing: 0.5px;
+    }
+    .header-divider {
+      margin: 40px auto 0;
+      width: 80px;
+      height: 4px;
+      border-radius: 2px;
+      background: linear-gradient(90deg, #f59e0b, #fde68a);
+    }
+
+    /* ── LEGEND ── */
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px 20px;
+      max-width: 780px;
+      margin: 36px auto 0;
+      padding: 0 20px;
+      font-size: .82rem;
+      color: #7a5c0a;
+    }
+    .legend span { white-space: nowrap; }
+
+    /* ── GRID ── */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+      gap: 22px;
+      max-width: 1300px;
+      margin: 40px auto 60px;
+      padding: 0 20px;
+    }
+
+    /* ── CARD ── */
+    .card {
+      background: #ffffff;
+      border-radius: 18px;
+      border: 1.5px solid #fde68a;
+      box-shadow: 0 4px 18px rgba(245,158,11,.13);
+      overflow: hidden;
+      transition: transform .18s, box-shadow .18s;
+    }
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 28px rgba(245,158,11,.22);
+    }
+    .card-header {
+      background: linear-gradient(90deg, #fef3c7, #fffbeb);
+      padding: 13px 18px 11px;
+      border-bottom: 1px solid #fde68a;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .card-flag { font-size: 1.7rem; line-height: 1; }
+    .card-country {
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: #92400e;
+    }
+
+    /* ── TABLE ── */
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      font-size: .72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: #a16207;
+      background: #fffbeb;
+      padding: 8px 14px;
+    }
+    thead th:first-child { text-align: left; }
+    thead th:not(:first-child) { text-align: center; }
+    tbody tr { border-top: 1px solid #fef3c7; }
+    tbody tr:hover { background: #fffdf0; }
+    td { padding: 9px 14px; font-size: .88rem; }
+    td.city-name { font-weight: 500; color: #44301a; }
+    td.weather-cell { text-align: center; }
+    .w-emoji { font-size: 1.25rem; display: block; line-height: 1; }
+    .w-temp  { font-size: .78rem; font-weight: 700; color: #b45309; margin-top: 2px; }
+    .w-desc  { font-size: .68rem; color: #92400e; margin-top: 1px; }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      padding: 22px 20px 36px;
+      font-size: .78rem;
+      color: #a16207;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Weather Report</h1>
+  <p class="subtitle">Irynas</p>
+  <div class="header-divider"></div>
+</header>
+
+<div class="legend">
+  <span>☀️ Sunny</span>
+  <span>🌤️ Mostly Sunny</span>
+  <span>⛅ Partly Cloudy</span>
+  <span>☁️ Cloudy</span>
+  <span>🌦️ Light Showers</span>
+  <span>🌧️ Rainy</span>
+  <span>⛈️ Thunderstorm</span>
+  <span>🌨️ Light Snow</span>
+  <span>❄️ Snowy</span>
+  <span>🌫️ Foggy</span>
+  <span>💨 Windy</span>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<footer>Mock data · updated daily · Weather Report by Irynas</footer>
+
+<script>
+const data = [
+  {
+    country: "Albania", flag: "🇦🇱",
+    cities: [
+      { name: "Tirana",  cur: [18,"☀️","Sunny"],         tom: [20,"🌤️","Mostly Sunny"] },
+      { name: "Durrës",  cur: [19,"☀️","Sunny"],         tom: [21,"☀️","Sunny"] },
+      { name: "Vlorë",   cur: [20,"⛅","Partly Cloudy"], tom: [19,"🌦️","Light Showers"] },
+    ]
+  },
+  {
+    country: "Andorra", flag: "🇦🇩",
+    cities: [
+      { name: "Andorra la Vella", cur: [9,"⛅","Partly Cloudy"], tom: [11,"☀️","Sunny"] },
+      { name: "Escaldes",         cur: [10,"☀️","Sunny"],        tom: [12,"🌤️","Mostly Sunny"] },
+      { name: "Encamp",           cur: [7,"🌨️","Light Snow"],   tom: [8,"⛅","Partly Cloudy"] },
+    ]
+  },
+  {
+    country: "Austria", flag: "🇦🇹",
+    cities: [
+      { name: "Vienna",   cur: [14,"🌤️","Mostly Sunny"], tom: [15,"⛅","Partly Cloudy"] },
+      { name: "Graz",     cur: [13,"☁️","Cloudy"],        tom: [14,"🌦️","Light Showers"] },
+      { name: "Salzburg", cur: [11,"🌧️","Rainy"],         tom: [12,"☁️","Cloudy"] },
+    ]
+  },
+  {
+    country: "Belarus", flag: "🇧🇾",
+    cities: [
+      { name: "Minsk",   cur: [9,"☁️","Cloudy"],  tom: [10,"🌦️","Light Showers"] },
+      { name: "Brest",   cur: [11,"⛅","Partly Cloudy"], tom: [12,"☀️","Sunny"] },
+      { name: "Grodno",  cur: [10,"🌧️","Rainy"],  tom: [9,"☁️","Cloudy"] },
+    ]
+  },
+  {
+    country: "Belgium", flag: "🇧🇪",
+    cities: [
+      { name: "Brussels", cur: [13,"🌦️","Light Showers"], tom: [14,"⛅","Partly Cloudy"] },
+      { name: "Antwerp",  cur: [12,"☁️","Cloudy"],         tom: [13,"🌦️","Light Showers"] },
+      { name: "Ghent",    cur: [13,"⛅","Partly Cloudy"],  tom: [14,"☀️","Sunny"] },
+    ]
+  },
+  {
+    country: "Bosnia & Herz.", flag: "🇧🇦",
+    cities: [
+      { name: "Sarajevo",    cur: [13,"⛅","Partly Cloudy"], tom: [15,"☀️","Sunny"] },
+      { name: "Banja Luka",  cur: [14,"🌤️","Mostly Sunny"], tom: [16,"☀️","Sunny"] },
+      { name: "Tuzla",       cur: [13,"☁️","Cloudy"],        tom: [14,"⛅","Partly Cloudy"] },
+    ]
+  },
+  {
+    country: "Bulgaria", flag: "🇧🇬",
+    cities: [
+      { name: "Sofia",    cur: [13,"⛅","Partly Cloudy"], tom: [15,"🌤️","Mostly Sunny"] },
+      { name: "Plovdiv",  cur: [15,"☀️","Sunny"],         tom: [17,"☀️","Sunny"] },
+      { name: "Varna",    cur: [14,"🌤️","Mostly Sunny"], tom: [15,"⛅","Partly Cloudy"] },
+    ]
+  },
+  {
+    country: "Croatia", flag: "🇭🇷",
+    cities: [
+      { name: "Zagreb", cur: [15,"🌤️","Mostly Sunny"], tom: [16,"☀️","Sunny"] },
+      { name: "Split",  cur: [18,"☀️","Sunny"],         tom: [20,"☀️","Sunny"] },
+      { name: "Rijeka", cur: [16,"⛅","Partly Cloudy"], tom: [17,"🌤️","Mostly Sunny"] },
+    ]
+  },
+  {
+    country: "Cyprus", flag: "🇨🇾",
+    cities: [
+      { name: "Nicosia",  cur: [22,"☀️","Sunny"],         tom: [23,"☀️","Sunny"] },
+      { name: "Limassol", cur: [21,"☀️","Sunny"],         tom: [22,"🌤️","Mostly Sunny"] },
+      { name: "Larnaca",  cur: [21,"🌤️","Mostly Sunny"], tom: [23,"☀️","Sunny"] },
+    ]
+  },
+  {
+    country: "Czech Republic", flag: "🇨🇿",
+    cities: [
+      { name: "Prague",   cur: [12,"⛅","Partly Cloudy"], tom: [13,"🌦️","Light Showers"] },
+      { name: "Brno",     cur: [13,"🌤️","Mostly Sunny"], tom: [14,"⛅","Partly Cloudy"] },
+      { name: "Ostrava",  cur: [11,"🌧️","Rainy"],         tom: [12,"☁️","Cloudy"] },
+    ]
+  },
+  {
+    country: "Denmark", flag: "🇩🇰",
+    cities: [
+      { name: "Copenhagen", cur: [9,"🌦️","Light Showers"], tom: [10,"⛅","Partly Cloudy"] },
+      { name: "Aarhus",     cur: [8,"☁️","Cloudy"],         tom: [9,"🌤️","Mostly Sunny"] },
+      { name: "Odense",     cur: [9,"⛅","Partly Cloudy"],  tom: [10,"☀️","Sunny"] },
+    ]
+  },
+  {
+    country: "Estonia", flag: "🇪🇪",
+    cities: [
+      { name: "Tallinn", cur: [7,"☁️","Cloudy"],  tom: [8,"🌦️","Light Showers"] },
+      { name: "Tartu",   cur: [6,"🌫️","Foggy"],   tom: [8,"⛅","Partly Cloudy"] },
+      { name: "Pärnu",   cur: [7,"🌤️","Mostly Sunny"], tom: [8,"☀️","Sunny"] },
+    ]
+  },
+  {
+    country: "Finland", flag: "🇫🇮",
+    cities: [
+      { name: "Helsinki", cur: [8,"🌤️","Mostly Sunny"], tom: [9,"⛅","Partly Cloudy"] },
+      { name: "Tampere",  cur: [7,"☁️","Cloudy"],        tom: [8,"🌦️","Light Showers"] },
+      { name: "Turku",    cur: [8,"⛅","Partly Cloudy"], tom: [9,"🌤️","Mostly Sunny"] },
+    ]
+  },
+  {
+    country: "France", flag: "🇫🇷",
+    cities: [
+      { name: "Paris",     cur: [14,"🌦️","Light Showers"], tom: [15,"⛅","Partly Cloudy"] },
+      { name: "Marseille", cur: [17,"☀️","Sunny"],          tom: [18,"☀️","Sunny"] },
+      { name: "Lyon",      cur: [15,"🌤️","Mostly Sunny"],  tom: [16,"🌤️","Mostly Sunny"] },
+    ]
+  },
+  {
+    country: "Germany", flag: "🇩🇪",
+    cities: [
+      { name: "Berlin",  cur: [12,"⛅","Partly Cloudy"], tom: [13,"🌤️","Mostly Sunny"] },
+      { name: "Munich",  cur: [11,"🌧️","Rainy"],         tom: [12,"☁️","Cloudy"] },
+      { name: "Hamburg", cur: [11,"🌦️","Light Showers"], tom: [12,"⛅","Partly Cloudy"] },
+    ]
+  },
+  {
+    country: "Greece", flag: "🇬🇷",
+    cities: [
+      { name: "Athens",       cur: [19,"☀️","Sunny"],         tom: [21,"☀️","Sunny"] },
+      { name: "Thessaloniki", cur: [17,"🌤️","Mostly Sunny"], tom: [19,"☀️","Sunny"] },
+      { name: "Patras",       cur: [18,"☀️","Sunny"],         tom: [20,"🌤️","Mostly Sunny"] },
+    ]
+  },
+  {
+    country: "Hungary", flag: "🇭🇺",
+    cities: [
+      { name: "Budapest",  cur: [15,"☀️","Sunny"],         tom: [16,"🌤️","Mostly Sunny"] },
+      { name: "Debrecen",  cur: [14,"⛅","Partly Cloudy"], tom: [15,"☀️","Sunny"] },
+      { name: "Pécs",      cur: [15,"🌤️","Mostly Sunny"], tom: [17,"☀️","Sunny"] },
+    ]
+  },
+  {
+    country: "Iceland", flag: "🇮🇸",
+    cities: [
+      { name: "Reykjavik", cur: [5,"🌧️","Rainy"],    tom: [4,"💨","Windy"] },
+      { name: "Akureyri",  cur: [3,"❄️","Snowy"],    tom: [4,"🌨️","Light Snow"] },
+      { name: "Keflavík",  cur: [4,"💨","Windy"],    tom: [5,"☁️","Cloudy"] },
+    ]
+  },
+  {
+    country: "Ireland", flag: "🇮🇪",
+    cities: [
+      { name: "Dublin",   cur: [11,"🌦️","Light Showers"], tom: [12,"⛅","Partly Cloudy"] },
+      { name: "Cork",     cur: [12,"⛅","Partly Cloudy"],  tom: [13,"🌤️","Mostly Sunny"] },
+      { name: "Galway",   cur: [11,"🌧️","Rainy"],          tom: [11,"☁️","Cloudy"] },
+    ]
+  },
+  {
+    country: "Italy", flag: "🇮🇹",
+    cities: [
+      { name: "Rome",   cur: [18,"☀️","Sunny"],         tom: [19,"☀️","Sunny"] },
+      { name: "Milan",  cur: [14,"🌤️","Mostly Sunny"], tom: [15,"⛅","Partly Cloudy"] },
+      { name: "Naples", cur: [17,"☀️","Sunny"],         tom: [18,"🌤️","Mostly Sunny"] },
+    ]
+  },
+  {
+    country: "Kosovo", flag: "🇽🇰",
+    cities: [
+      { name: "Pristina", cur: [13,"⛅","Partly Cloudy"], tom: [15,"🌤️","Mostly Sunny"] },
+      { name: "Prizren",  cur: [15,"☀️","Sunny"],         tom: [16,"☀️","Sunny"] },
+      { name: "Peja",     cur: [14,"🌤️","Mostly Sunny"], tom: [15,"⛅","Partly Cloudy"] },
+    ]
+  },
+  {
+    country: "Latvia", flag: "🇱🇻",
+    cities: [
+      { name: "Riga",         cur: [8,"🌦️","Light Showers"], tom: [9,"⛅","Partly Cloudy"] },
+      { name: "Daugavpils",   cur: [7,"☁️","Cloudy"],         tom: [8,"🌤️","Mostly Sunny"] },
+      { name: "Liepāja",      cur: [8,"💨","Windy"],          tom: [9,"☁️","Cloudy"] },
+    ]
+  },
+  {
+    country: "Liechtenstein", flag: "🇱🇮",
+    cities: [
+      { name: "Vaduz",    cur: [12,"🌤️","Mostly Sunny"], tom: [13,"☀️","Sunny"] },
+      { name: "Schaan",   cur: [11,"⛅","Partly Cloudy"], tom: [13,"🌤️","Mostly Sunny"] },
+      { name: "Balzers",  cur: [13,"☀️","Sunny"],         tom: [14,"☀️","Sunny"] },
+    ]
+  },
+  {
+    country: "Lithuania", flag: "🇱🇹",
+    cities: [
+      { name: "Vilnius",   cur: [9,"⛅","Partly Cloudy"], tom: [11,"🌤️","Mostly Sunny"] },
+      { name: "Kaunas",    cur: [9,"🌤️","Mostly Sunny"], tom: [11,"☀️","Sunny"] },
+      { name: "Klaipėda", cur: [8,"🌧️","Rainy"],         tom: [9,"☁️","Cloudy"] },
+    ]
+  },
+  {
+    country: "Luxembourg", flag: "🇱🇺",
+    cities: [
+      { name: "Luxembourg City",   cur: [13,"⛅","Partly Cloudy"], tom: [14,"🌤️","Mostly Sunny"] },
+      { name: "Esch-sur-Alzette",  cur: [13,"🌦️","Light Showers"], tom: [14,"⛅","Partly Cloudy"] },
+      { name: "Differdange",       cur: [12,"☁️","Cloudy"],         tom: [13,"☀️","Sunny"] },
+    ]
+  },
+  {
+    country: "Malta", flag: "🇲🇹",
+    cities: [
+      { name: "Valletta",    cur: [19,"☀️","Sunny"],         tom: [20,"☀️","Sunny"] },
+      { name: "Birkirkara",  cur: [19,"🌤️","Mostly Sunny"], tom: [20,"☀️","Sunny"] },
+      { name: "Sliema",      cur: [20,"☀️","Sunny"],         tom: [21,"🌤️","Mostly Sunny"] },
+    ]
+  },
+  {
+    country: "Moldova", flag: "🇲🇩",
+    cities: [
+      { name: "Chișinău", cur: [14,"🌤️","Mostly Sunny"], tom: [16,"☀️","Sunny"] },
+      { name: "Tiraspol", cur: [13,"⛅","Partly Cloudy"], tom: [15,"🌤️","Mostly Sunny"] },
+      { name: "Bălți",    cur: [12,"🌦️","Light Showers"], tom: [13,"⛅","Partly Cloudy"] },
+    ]
+  },
+  {
+    country: "Monaco", flag: "🇲🇨",
+    cities: [
+      { name: "Monaco",        cur: [17,"☀️","Sunny"],         tom: [18,"☀️","Sunny"] },
+      { name: "Monte Carlo",   cur: [18,"☀️","Sunny"],         tom: [19,"☀️","Sunny"] },
+      { name: "Fontvieille",   cur: [17,"🌤️","Mostly Sunny"], tom: [18,"🌤️","Mostly Sunny"] },
+    ]
+  },
+  {
+    country: "Montenegro", flag: "🇲🇪",
+    cities: [
+      { name: "Podgorica", cur: [18,"☀️","Sunny"],         tom: [20,"☀️","Sunny"] },
+      { name: "Nikšić",    cur: [15,"⛅","Partly Cloudy"], tom: [16,"🌤️","Mostly Sunny"] },
+      { name: "Kotor",     cur: [18,"🌤️","Mostly Sunny"], tom: [19,"☀️","Sunny"] },
+    ]
+  },
+  {
+    country: "Netherlands", flag: "🇳🇱",
+    cities: [
+      { name: "Amsterdam",  cur: [12,"🌦️","Light Showers"], tom: [13,"⛅","Partly Cloudy"] },
+      { name: "Rotterdam",  cur: [12,"⛅","Partly Cloudy"],  tom: [13,"🌤️","Mostly Sunny"] },
+      { name: "The Hague",  cur: [12,"☁️","Cloudy"],         tom: [13,"⛅","Partly Cloudy"] },
+    ]
+  },
+  {
+    country: "North Macedonia", flag: "🇲🇰",
+    cities: [
+      { name: "Skopje",    cur: [16,"☀️","Sunny"],         tom: [18,"☀️","Sunny"] },
+      { name: "Bitola",    cur: [14,"🌤️","Mostly Sunny"], tom: [16,"🌤️","Mostly Sunny"] },
+      { name: "Kumanovo",  cur: [15,"⛅","Partly Cloudy"], tom: [17,"☀️","Sunny"] },
+    ]
+  },
+  {
+    country: "Norway", flag: "🇳🇴",
+    cities: [
+      { name: "Oslo",       cur: [7,"⛅","Partly Cloudy"], tom: [8,"🌤️","Mostly Sunny"] },
+      { name: "Bergen",     cur: [9,"🌧️","Rainy"],         tom: [8,"☁️","Cloudy"] },
+      { name: "Trondheim",  cur: [6,"🌨️","Light Snow"],   tom: [7,"☁️","Cloudy"] },
+    ]
+  },
+  {
+    country: "Poland", flag: "🇵🇱",
+    cities: [
+      { name: "Warsaw", cur: [11,"⛅","Partly Cloudy"], tom: [13,"🌤️","Mostly Sunny"] },
+      { name: "Kraków", cur: [12,"🌤️","Mostly Sunny"], tom: [14,"☀️","Sunny"] },
+      { name: "Gdańsk", cur: [10,"🌧️","Rainy"],         tom: [11,"⛅","Partly Cloudy"] },
+    ]
+  },
+  {
+    country: "Portugal", flag: "🇵🇹",
+    cities: [
+      { name: "Lisbon", cur: [18,"☀️","Sunny"],         tom: [19,"☀️","Sunny"] },
+      { name: "Porto",  cur: [16,"🌤️","Mostly Sunny"], tom: [17,"⛅","Partly Cloudy"] },
+      { name: "Braga",  cur: [15,"⛅","Partly Cloudy"], tom: [16,"🌤️","Mostly Sunny"] },
+    ]
+  },
+  {
+    country: "Romania", flag: "🇷🇴",
+    cities: [
+      { name: "Bucharest",    cur: [15,"☀️","Sunny"],         tom: [17,"☀️","Sunny"] },
+      { name: "Cluj-Napoca",  cur: [13,"⛅","Partly Cloudy"], tom: [15,"🌤️","Mostly Sunny"] },
+      { name: "Timișoara",    cur: [14,"🌤️","Mostly Sunny"], tom: [16,"☀️","Sunny"] },
+    ]
+  },
+  {
+    country: "Russia", flag: "🇷🇺",
+    cities: [
+      { name: "Moscow",           cur: [8,"☁️","Cloudy"],  tom: [9,"🌦️","Light Showers"] },
+      { name: "St. Petersburg",   cur: [7,"🌧️","Rainy"],   tom: [8,"☁️","Cloudy"] },
+      { name: "Kaliningrad",      cur: [10,"⛅","Partly Cloudy"], tom: [11,"🌤️","Mostly Sunny"] },
+    ]
+  },
+  {
+    country: "San Marino", flag: "🇸🇲",
+    cities: [
+      { name: "San Marino City", cur: [13,"🌤️","Mostly Sunny"], tom: [14,"☀️","Sunny"] },
+      { name: "Serravalle",      cur: [12,"⛅","Partly Cloudy"], tom: [14,"🌤️","Mostly Sunny"] },
+      { name: "Borgo Maggiore",  cur: [13,"☀️","Sunny"],         tom: [15,"☀️","Sunny"] },
+    ]
+  },
+  {
+    country: "Serbia", flag: "🇷🇸",
+    cities: [
+      { name: "Belgrade",  cur: [15,"☀️","Sunny"],         tom: [17,"☀️","Sunny"] },
+      { name: "Novi Sad",  cur: [14,"🌤️","Mostly Sunny"], tom: [16,"☀️","Sunny"] },
+      { name: "Niš",       cur: [15,"⛅","Partly Cloudy"], tom: [17,"🌤️","Mostly Sunny"] },
+    ]
+  },
+  {
+    country: "Slovakia", flag: "🇸🇰",
+    cities: [
+      { name: "Bratislava", cur: [14,"🌤️","Mostly Sunny"], tom: [15,"☀️","Sunny"] },
+      { name: "Košice",     cur: [12,"⛅","Partly Cloudy"], tom: [13,"🌤️","Mostly Sunny"] },
+      { name: "Prešov",     cur: [11,"🌧️","Rainy"],         tom: [12,"⛅","Partly Cloudy"] },
+    ]
+  },
+  {
+    country: "Slovenia", flag: "🇸🇮",
+    cities: [
+      { name: "Ljubljana", cur: [14,"🌤️","Mostly Sunny"], tom: [15,"☀️","Sunny"] },
+      { name: "Maribor",   cur: [13,"☀️","Sunny"],         tom: [15,"🌤️","Mostly Sunny"] },
+      { name: "Celje",     cur: [14,"⛅","Partly Cloudy"], tom: [15,"🌤️","Mostly Sunny"] },
+    ]
+  },
+  {
+    country: "Spain", flag: "🇪🇸",
+    cities: [
+      { name: "Madrid",    cur: [16,"🌤️","Mostly Sunny"], tom: [18,"☀️","Sunny"] },
+      { name: "Barcelona", cur: [17,"☀️","Sunny"],         tom: [19,"☀️","Sunny"] },
+      { name: "Seville",   cur: [21,"☀️","Sunny"],         tom: [23,"☀️","Sunny"] },
+    ]
+  },
+  {
+    country: "Sweden", flag: "🇸🇪",
+    cities: [
+      { name: "Stockholm",  cur: [8,"⛅","Partly Cloudy"], tom: [9,"🌤️","Mostly Sunny"] },
+      { name: "Gothenburg", cur: [9,"🌦️","Light Showers"], tom: [10,"⛅","Partly Cloudy"] },
+      { name: "Malmö",      cur: [9,"🌤️","Mostly Sunny"],  tom: [10,"☀️","Sunny"] },
+    ]
+  },
+  {
+    country: "Switzerland", flag: "🇨🇭",
+    cities: [
+      { name: "Bern",    cur: [12,"⛅","Partly Cloudy"], tom: [13,"🌤️","Mostly Sunny"] },
+      { name: "Zürich",  cur: [12,"🌧️","Rainy"],         tom: [13,"⛅","Partly Cloudy"] },
+      { name: "Geneva",  cur: [14,"🌤️","Mostly Sunny"], tom: [15,"☀️","Sunny"] },
+    ]
+  },
+  {
+    country: "Turkey (Europe)", flag: "🇹🇷",
+    cities: [
+      { name: "Istanbul",  cur: [15,"⛅","Partly Cloudy"], tom: [16,"🌤️","Mostly Sunny"] },
+      { name: "Edirne",    cur: [14,"🌤️","Mostly Sunny"], tom: [15,"☀️","Sunny"] },
+      { name: "Tekirdağ",  cur: [15,"☀️","Sunny"],         tom: [16,"🌤️","Mostly Sunny"] },
+    ]
+  },
+  {
+    country: "Ukraine", flag: "🇺🇦",
+    cities: [
+      { name: "Kyiv",     cur: [12,"⛅","Partly Cloudy"], tom: [14,"🌤️","Mostly Sunny"] },
+      { name: "Kharkiv",  cur: [11,"🌤️","Mostly Sunny"], tom: [13,"☀️","Sunny"] },
+      { name: "Odessa",   cur: [14,"☀️","Sunny"],         tom: [16,"☀️","Sunny"] },
+    ]
+  },
+  {
+    country: "United Kingdom", flag: "🇬🇧",
+    cities: [
+      { name: "London",     cur: [13,"🌦️","Light Showers"], tom: [14,"⛅","Partly Cloudy"] },
+      { name: "Manchester", cur: [11,"🌧️","Rainy"],          tom: [12,"☁️","Cloudy"] },
+      { name: "Edinburgh",  cur: [9,"💨","Windy"],            tom: [10,"⛅","Partly Cloudy"] },
+    ]
+  },
+  {
+    country: "Vatican City", flag: "🇻🇦",
+    cities: [
+      { name: "Vatican City", cur: [18,"☀️","Sunny"],         tom: [19,"☀️","Sunny"] },
+      { name: "Borgo",        cur: [18,"☀️","Sunny"],         tom: [19,"🌤️","Mostly Sunny"] },
+      { name: "Prati",        cur: [18,"🌤️","Mostly Sunny"], tom: [19,"☀️","Sunny"] },
+    ]
+  },
+];
+
+const grid = document.getElementById('grid');
+
+data.forEach(({ country, flag, cities }) => {
+  const card = document.createElement('div');
+  card.className = 'card';
+
+  const rows = cities.map(c => `
+    <tr>
+      <td class="city-name">${c.name}</td>
+      <td class="weather-cell">
+        <span class="w-emoji">${c.cur[1]}</span>
+        <span class="w-temp">${c.cur[0]}°C</span>
+        <span class="w-desc">${c.cur[2]}</span>
+      </td>
+      <td class="weather-cell">
+        <span class="w-emoji">${c.tom[1]}</span>
+        <span class="w-temp">${c.tom[0]}°C</span>
+        <span class="w-desc">${c.tom[2]}</span>
+      </td>
+    </tr>`).join('');
+
+  card.innerHTML = `
+    <div class="card-header">
+      <span class="card-flag">${flag}</span>
+      <span class="card-country">${country}</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>City</th>
+          <th>Today</th>
+          <th>Tomorrow</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+
+  grid.appendChild(card);
+});
+</script>
+</body>
+</html>
